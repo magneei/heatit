@@ -40,12 +40,14 @@ class HeatitConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 async with HeatitClient(self._username, self._password) as client:
                     self._devices = await client.async_get_devices()
-            except HeatitAuthError:
+            except HeatitAuthError as err:
+                _LOGGER.error("Heatit auth failed: %s", err)
                 errors["base"] = "auth_failed"
-            except HeatitConnectionError:
+            except HeatitConnectionError as err:
+                _LOGGER.error("Heatit connection failed: %s", err)
                 errors["base"] = "cannot_connect"
             except Exception:
-                _LOGGER.exception("Unexpected error during config flow")
+                _LOGGER.exception("Unexpected error during Heatit config flow")
                 errors["base"] = "unknown"
             else:
                 if not self._devices:

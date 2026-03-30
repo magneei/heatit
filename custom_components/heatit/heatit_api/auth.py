@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import time
 
 from .exceptions import HeatitAuthError
+
+_LOGGER = logging.getLogger(__name__)
 
 # Heatit Cognito configuration (from tf.api.ouman-cloud.com/users/endpoint)
 COGNITO_REGION = "eu-west-1"
@@ -17,20 +20,27 @@ CLIENT_ID = "6spbss1b6lglcco8t3dtiv961e"
 def _create_and_authenticate(username: str, password: str) -> tuple:
     """Create Cognito client and authenticate (sync, runs in executor)."""
     # Prevent boto3 from trying to contact EC2 metadata service
-    os.environ.setdefault("AWS_EC2_METADATA_DISABLED", "true")
+    os.environ["AWS_EC2_METADATA_DISABLED"] = "true"
     os.environ.setdefault("AWS_DEFAULT_REGION", COGNITO_REGION)
 
-    import boto3
     from botocore.config import Config
+    from botocore.session import Session
     from pycognito import Cognito
 
-    # Create a boto3 client that won't look for AWS credentials
-    client = boto3.client(
+    # Create a botocore session that won't search for credentials
+    botocore_session = Session()
+    botocore_session.set_config_variable("metadata_service_timeout", 1)
+    botocore_session.set_config_variable("metadata_service_num_attempts", 0)
+
+    import boto3
+
+    session = boto3.Session(botocore_session=botocore_session, region_name=COGNITO_REGION)
+    client = session.client(
         "cognito-idp",
-        region_name=COGNITO_REGION,
-        config=Config(signature_version=boto3.session.UNSIGNED),
-        aws_access_key_id="",
-        aws_secret_access_key="",
+        config=Config(
+            region_name=COGNITO_REGION,
+            signature_version="v4",
+        ),
     )
 
     cognito = Cognito(
@@ -112,6 +122,7 @@ class CognitoAuth:
         except HeatitAuthError:
             raise
         except Exception as err:
+            _LOGGER.error("Cognito authentication error: %s", err, exc_info=True)
             raise HeatitAuthError(f"Authentication failed: {err}") from err
 
     async def _refresh(self) -> str:
