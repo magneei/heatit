@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from heatit_api import (
+from .heatit_api import (
     HeatitAuthError,
     HeatitClient,
     HeatitConnectionError,

@@ -15,7 +15,7 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from heatit_api import OperatingMode
+from .heatit_api import OperatingMode
 
 from .const import DOMAIN
 from .coordinator import HeatitDataUpdateCoordinator

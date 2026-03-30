@@ -19,7 +19,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from heatit_api import HeatitDevice
+from .heatit_api import HeatitDevice
 
 from .const import DOMAIN
 from .coordinator import HeatitDataUpdateCoordinator

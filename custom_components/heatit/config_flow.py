@@ -10,7 +10,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_EMAIL
 
-from heatit_api import HeatitAuthError, HeatitClient, HeatitConnectionError
+from .heatit_api import HeatitAuthError, HeatitClient, HeatitConnectionError
 
 from .const import CONF_DEVICE_ID, CONF_PASSWORD, CONF_USERNAME, DOMAIN
 

@@ -2,17 +2,8 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-
-# Add repo root to sys.path so heatit_api is importable.
-# In the repo layout, custom_components/heatit/ is 2 levels below root.
-_REPO_ROOT = str(Path(__file__).resolve().parents[2])
-if _REPO_ROOT not in sys.path:
-    sys.path.insert(0, _REPO_ROOT)
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import HeatitDataUpdateCoordinator
