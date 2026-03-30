@@ -24,30 +24,15 @@ def _create_and_authenticate(username: str, password: str) -> tuple:
     os.environ.setdefault("AWS_DEFAULT_REGION", COGNITO_REGION)
 
     from botocore.config import Config
-    from botocore.session import Session
     from pycognito import Cognito
-
-    # Create a botocore session that won't search for credentials
-    botocore_session = Session()
-    botocore_session.set_config_variable("metadata_service_timeout", 1)
-    botocore_session.set_config_variable("metadata_service_num_attempts", 0)
-
-    import boto3
-
-    session = boto3.Session(botocore_session=botocore_session, region_name=COGNITO_REGION)
-    client = session.client(
-        "cognito-idp",
-        config=Config(
-            region_name=COGNITO_REGION,
-            signature_version="v4",
-        ),
-    )
 
     cognito = Cognito(
         USER_POOL_ID,
         CLIENT_ID,
         username=username,
-        boto3_client=client,
+        botocore_config=Config(
+            region_name=COGNITO_REGION,
+        ),
     )
     cognito.authenticate(password=password)
     return cognito.id_token, cognito.access_token, cognito.refresh_token, cognito
