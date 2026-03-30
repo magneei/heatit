@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 
 from .exceptions import HeatitAuthError
@@ -11,6 +12,44 @@ from .exceptions import HeatitAuthError
 COGNITO_REGION = "eu-west-1"
 USER_POOL_ID = "eu-west-1_2lWTXCKVV"
 CLIENT_ID = "6spbss1b6lglcco8t3dtiv961e"
+
+
+def _create_and_authenticate(username: str, password: str) -> tuple:
+    """Create Cognito client and authenticate (sync, runs in executor)."""
+    # Prevent boto3 from trying to contact EC2 metadata service
+    os.environ.setdefault("AWS_EC2_METADATA_DISABLED", "true")
+    os.environ.setdefault("AWS_DEFAULT_REGION", COGNITO_REGION)
+
+    import boto3
+    from botocore.config import Config
+    from pycognito import Cognito
+
+    # Create a boto3 client that won't look for AWS credentials
+    client = boto3.client(
+        "cognito-idp",
+        region_name=COGNITO_REGION,
+        config=Config(signature_version=boto3.session.UNSIGNED),
+        aws_access_key_id="",
+        aws_secret_access_key="",
+    )
+
+    cognito = Cognito(
+        USER_POOL_ID,
+        CLIENT_ID,
+        username=username,
+        boto3_client=client,
+    )
+    cognito.authenticate(password=password)
+    return cognito.id_token, cognito.access_token, cognito.refresh_token, cognito
+
+
+def _refresh_tokens(cognito, id_token, access_token, refresh_token) -> tuple:
+    """Refresh tokens (sync, runs in executor)."""
+    cognito.id_token = id_token
+    cognito.access_token = access_token
+    cognito.refresh_token = refresh_token
+    cognito.renew_access_token()
+    return cognito.id_token, cognito.access_token
 
 
 class CognitoAuth:
@@ -33,15 +72,6 @@ class CognitoAuth:
     def is_expired(self) -> bool:
         return time.time() >= self._token_expiry
 
-    def _get_cognito(self):
-        if self._cognito is None:
-            from pycognito import Cognito
-
-            self._cognito = Cognito(
-                USER_POOL_ID, CLIENT_ID, username=self._username
-            )
-        return self._cognito
-
     async def authenticate(self) -> str:
         """Authenticate and return the ID token."""
         if self._id_token and not self.is_expired:
@@ -58,17 +88,20 @@ class CognitoAuth:
     async def _initiate_auth(self) -> str:
         """Perform SRP authentication flow."""
         try:
-            cognito = self._get_cognito()
-            # pycognito is sync, run in executor to avoid blocking
             loop = asyncio.get_running_loop()
-            await loop.run_in_executor(
-                None, cognito.authenticate, self._password
+            id_token, access_token, refresh_token, cognito = (
+                await loop.run_in_executor(
+                    None,
+                    _create_and_authenticate,
+                    self._username,
+                    self._password,
+                )
             )
 
-            self._id_token = cognito.id_token
-            self._access_token = cognito.access_token
-            self._refresh_token = cognito.refresh_token
-            # Cognito tokens expire in 1 hour
+            self._cognito = cognito
+            self._id_token = id_token
+            self._access_token = access_token
+            self._refresh_token = refresh_token
             self._token_expiry = time.time() + 3500  # ~58 min buffer
 
             if not self._id_token:
@@ -84,16 +117,21 @@ class CognitoAuth:
     async def _refresh(self) -> str:
         """Refresh tokens using the refresh token."""
         try:
-            cognito = self._get_cognito()
-            cognito.id_token = self._id_token
-            cognito.access_token = self._access_token
-            cognito.refresh_token = self._refresh_token
+            if not self._cognito:
+                raise HeatitAuthError("No cognito session to refresh")
 
             loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, cognito.renew_access_token)
+            id_token, access_token = await loop.run_in_executor(
+                None,
+                _refresh_tokens,
+                self._cognito,
+                self._id_token,
+                self._access_token,
+                self._refresh_token,
+            )
 
-            self._id_token = cognito.id_token
-            self._access_token = cognito.access_token
+            self._id_token = id_token
+            self._access_token = access_token
             self._token_expiry = time.time() + 3500
 
             return self._id_token
