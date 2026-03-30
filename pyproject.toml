@@ -1,0 +1,16 @@
+[project]
+name = "heatit-api"
+version = "0.1.0"
+description = "Python library and CLI for Heatit WiFi thermostats"
+requires-python = ">=3.11"
+dependencies = ["aiohttp>=3.8.0", "pycognito>=2024.0.0"]
+
+[project.scripts]
+heatit = "heatit_api.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["heatit_api*"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
