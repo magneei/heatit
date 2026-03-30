@@ -1,0 +1,46 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Heatit WiFi Thermostat",
+        "description": "Enter your Heatit WiFi app credentials.",
+        "data": {
+          "username": "Email",
+          "password": "Password"
+        }
+      },
+      "select_device": {
+        "title": "Select Device",
+        "description": "Multiple devices found. Select which one to add.",
+        "data": {
+          "device_id": "Device"
+        }
+      }
+    },
+    "error": {
+      "auth_failed": "Invalid email or password",
+      "cannot_connect": "Could not connect to Heatit cloud",
+      "no_devices": "No devices found on this account",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This device is already configured"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "floor_temperature": {
+        "name": "Floor temperature"
+      },
+      "room_temperature": {
+        "name": "Room temperature"
+      },
+      "external_temperature": {
+        "name": "External temperature"
+      },
+      "wifi_signal": {
+        "name": "WiFi signal"
+      }
+    }
+  }
+}
